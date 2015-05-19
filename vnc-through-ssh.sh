@@ -28,7 +28,7 @@ openvnc()
     vncviewer :96 &
 }
 
-r1="$(ssh "$sshtarget" ps aux | grep qemu)"
+r1="$(echo 'ps aux | grep qemu' | ssh "$sshtarget")"
 
 if [ "$2" != "" ]; then
     regex="$2"
