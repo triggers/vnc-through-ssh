@@ -14,10 +14,28 @@
 localhost_ref=127.0.0.1
 # localhost_ref=localhost
 
+usage()
+{
+    echo "ssh target, then regex, bla, bla, bla..." 1>&2
+    exit 255
+}
+
 parse-parameters()
 {
-    sshtarget="$1"
-    regex="$2"
+    while [ "$#" -gt 0 ]; do
+	case "$1" in
+	    *)
+		if [ "$sshtarget" == "" ]; then
+		    sshtarget="$1"
+		elif [ "$regex" == "" ]; then
+		    regex="$1"
+		else
+		    usage
+		fi
+		;;
+	esac
+	shift
+    done
 }
 
 open-one-vnc()
