@@ -16,12 +16,29 @@ localhost_ref=127.0.0.1
 
 usage()
 {
-    echo "ssh target, then regex, bla, bla, bla..." 1>&2
-    cat <<EOF
+    cat <<'EOF'
+Quick start:
+
+If only one qemu process is running on some remote host, then using
+that hostname as the only parameter will connect a local vncviewer to
+that qemu's console.
+
 Basic functionality is:
  (1) discovery of remote vnc port(s)
  (2) oneshot forwarding of temporary local port to vnc port(2)
  (3) connection of vncviewer(s) to the local port(s)
+
+The are two positional parameters.  The first is required and is a
+bash expression that can open up a shell either locally or remotely.
+If the expression consists of only one token, it is assumed to be an
+ssh target, and "ssh" is automatically prepended.  Therefore, if bash
+is used as the expression (e.g., to search for vnc ports on the local
+machine), then it must be artificially made into more than one token,
+e.g. "bash -e", or "eval bash" will keep ssh from being prepended.
+
+The second positional parameter is optional and is a regular
+expression that is used to filter the listing of qemu processes to
+only those whose parameter list matches the regular expression.
 
 These extra options are possible:
   --just-list    Skip steps 2 and 3, and just output all qemu processes that match regex
@@ -39,8 +56,12 @@ parse-parameters()
 		justlist=true
 	    ;;
 	    *)
-		if [ "$sshtarget" == "" ]; then
-		    sshtarget="$1"
+		if [ "$eval_for_shell" == "" ]; then
+		    eval_for_shell="$1"
+		    read token1 moretokens <<<"$eval_for_shell"
+		    # If only one token, assume it is an ssh target
+		    # possibly setup by ssh config.
+		    [ "$moretokens" == "" ] && eval_for_shell="ssh $eval_for_shell"
 		elif [ "$regex" == "" ]; then
 		    regex="$1"
 		else
@@ -60,14 +81,14 @@ open-one-vnc()
     mkfifo $tf
     exec 22> >(cat >$tf)
     exec 44< $tf
-    nc -l 5996 <&44 | ssh "$sshtarget" nc "$localhost_ref" $(( $vncport + 5900 )) >&22 &
+    (echo "nc $localhost_ref $(( $vncport + 5900 ))" ; nc -l 5996) <&44 | eval "$eval_for_shell"  >&22 &
     sleep 1  # sleep long enough for nc to open the listening port
     vncviewer :96 &
 }
 
 search-for-vnc-ports()
 {
-    r1="$(echo 'ps aux | grep qemu' | ssh "$sshtarget")"
+    r1="$(echo 'ps aux | grep qemu' | eval "$eval_for_shell")"
 
     if [ "$regex" != "" ]; then
 	r2="$(echo "$r1" | grep "$regex")"
