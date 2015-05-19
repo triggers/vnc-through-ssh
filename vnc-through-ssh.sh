@@ -17,13 +17,27 @@ localhost_ref=127.0.0.1
 usage()
 {
     echo "ssh target, then regex, bla, bla, bla..." 1>&2
+    cat <<EOF
+Basic functionality is:
+ (1) discovery of remote vnc port(s)
+ (2) oneshot forwarding of temporary local port to vnc port(2)
+ (3) connection of vncviewer(s) to the local port(s)
+
+These extra options are possible:
+  --just-list    Skip steps 2 and 3, and just output all qemu processes that match regex
+
+EOF
     exit 255
 }
 
 parse-parameters()
 {
+    justlist=false
     while [ "$#" -gt 0 ]; do
 	case "$1" in
+	    -l | -ls | -jl | --just-list)
+		justlist=true
+	    ;;
 	    *)
 		if [ "$sshtarget" == "" ]; then
 		    sshtarget="$1"
@@ -59,6 +73,11 @@ search-for-vnc-ports()
 	r2="$(echo "$r1" | grep "$regex")"
     else
 	r2="$r1"
+    fi
+
+    if $justlist; then
+	echo "$r2"
+	exit 0
     fi
     
     if [ "$r2" == "" ]; then
