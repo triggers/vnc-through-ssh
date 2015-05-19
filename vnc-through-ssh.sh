@@ -6,6 +6,16 @@
 
 sshtarget="$1"
 
+# Some machines do not have localhost defined, so 127.0.0.1 seems to
+# be a safer default choice for making local TCP connections.  Only
+# once have I seen localhost work where 127.0.0.1 did not work, but
+# did not have time to verify what was going on.  If things are not
+# working and no other reason can be found, it may be worth a trying
+# uncommenting the second line below.
+
+localhost_ref=127.0.0.1
+# localhost_ref=localhost
+
 openvnc()
 {
     tf=/tmp/tmpfifo
@@ -13,7 +23,7 @@ openvnc()
     mkfifo $tf
     exec 22> >(cat >$tf)
     exec 44< $tf
-    nc -l 5996 <&44 | ssh "$1" nc 127.0.0.1 $(( $2 + 5900 )) >&22 &
+    nc -l 5996 <&44 | ssh "$1" nc "$localhost_ref" $(( $2 + 5900 )) >&22 &
     sleep 1  # sleep long enough for nc to open the listening port
     vncviewer :96 &
 }
