@@ -17,7 +17,10 @@ localhost_ref=127.0.0.1
 usage()
 {
     cat <<'EOF'
-Quick start:
+Documentation below is just rough notes.  Please ask me directly
+if you have any questions.
+
+-----------------------
 
 If only one qemu process is running on some remote host, then using
 that hostname as the only parameter will connect a local vncviewer to
@@ -42,6 +45,13 @@ only those whose parameter list matches the regular expression.
 
 These extra options are possible:
   --just-list    Skip steps 2 and 3, and just output all qemu processes that match regex
+  --all          When the regular expression selects more than one KVM process, connect
+                 a separate vncviewer to each of them.
+
+-----------------------
+
+Documentation above is just rough notes.  Please ask me directly
+if you have any questions.
 
 EOF
     exit 255
@@ -49,10 +59,14 @@ EOF
 
 parse-parameters()
 {
+    doall=false
     justlist=false
     while [ "$#" -gt 0 ]; do
 	case "$1" in
-	    -l | -ls | -jl | --just-list)
+	    -a | --all | --do-all)
+		doall=true
+	    ;;
+	    -l | --ls | --jl | --just-list)
 		justlist=true
 	    ;;
 	    *)
@@ -111,8 +125,8 @@ search-for-vnc-ports()
     echo "$vncs"
     
     count="$(echo "$vncs" | wc -l)"
-    if [ "$count" -ne 1 ] && [[ "$3" != -f* ]] ; then
-	echo 'More than one match.  Make 3rd parameter -f to open all.  (Maybe make second parameter ".")'
+    if [ "$count" -ne 1 ] && ! $doall ; then
+	echo 'More than one match.  Use -a option to open all.'
 	exit 255
     fi
 }
