@@ -28,7 +28,7 @@ that qemu's console.
 
 Basic functionality is:
  (1) discovery of remote vnc port(s)
- (2) oneshot forwarding of temporary local port to vnc port(2)
+ (2) oneshot forwarding of temporary local port to vnc port(s)
  (3) connection of vncviewer(s) to the local port(s)
 
 The are two positional parameters.  The first is required and is a
@@ -63,6 +63,9 @@ parse-parameters()
     justlist=false
     while [ "$#" -gt 0 ]; do
 	case "$1" in
+	    --help)
+		usage
+	    ;;
 	    -a | --all | --do-all)
 		doall=true
 	    ;;
