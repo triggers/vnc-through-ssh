@@ -59,12 +59,17 @@ EOF
 
 parse-parameters()
 {
+    localport=""
     doall=false
     justlist=false
     while [ "$#" -gt 0 ]; do
 	case "$1" in
 	    --help)
 		usage
+	    ;;
+	    --lp | --local*port)
+		localport="$2"
+		shift
 	    ;;
 	    -a | --all | --do-all)
 		doall=true
@@ -98,9 +103,13 @@ open-one-vnc()
     mkfifo $tf
     exec 22> >(cat >$tf)
     exec 44< $tf
-    (echo "nc $localhost_ref $(( $vncport + 5900 ))" ; nc -l 5996) <&44 | eval "$eval_for_shell"  >&22 &
-    sleep 1  # sleep long enough for nc to open the listening port
-    vncviewer :96 &
+    lport=5996
+    [ "$localport" != "" ] && lport="$localport"
+    (echo "nc $localhost_ref $(( $vncport + 5900 ))" ; nc -l "$lport") <&44 | eval "$eval_for_shell"  >&22 &
+    if [ "$localport" == "" ]; then
+	sleep 1  # sleep long enough for nc to open the listening port
+	vncviewer :96 &
+    fi
 }
 
 search-for-vnc-ports()
@@ -128,8 +137,8 @@ search-for-vnc-ports()
     echo "$vncs"
     
     count="$(echo "$vncs" | wc -l)"
-    if [ "$count" -ne 1 ] && ! $doall ; then
-	echo 'More than one match.  Use -a option to open all.'
+    if [ "$count" -ne 1 ] && [ "$localport" == ""] &&  ! $doall ; then
+	echo 'More than one match.  Use -a option (and no --lp option) to open all.'
 	exit 255
     fi
 }
