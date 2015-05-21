@@ -44,9 +44,10 @@ expression that is used to filter the listing of qemu processes to
 only those whose parameter list matches the regular expression.
 
 These extra options are possible:
-  --just-list    Skip steps 2 and 3, and just output all qemu processes that match regex
-  --all          When the regular expression selects more than one KVM process, connect
-                 a separate vncviewer to each of them.
+  --just-list         Skip steps 2 and 3, and just output all qemu processes that match regex
+  --all               When the regular expression selects more than one KVM process, connect
+                      a separate vncviewer to each of them.
+  --remote-port 5911  Skip step 1 and just connect vncviewer to the remote port given
 
 -----------------------
 
@@ -60,6 +61,7 @@ EOF
 parse-parameters()
 {
     localport=""
+    remoteport=""
     doall=false
     justlist=false
     while [ "$#" -gt 0 ]; do
@@ -69,6 +71,10 @@ parse-parameters()
 	    ;;
 	    --lp | --local*port)
 		localport="$2"
+		shift
+	    ;;
+	    -p | --rp | --remote*port)
+		remoteport="$2"
 		shift
 	    ;;
 	    -a | --all | --do-all)
@@ -112,6 +118,23 @@ open-one-vnc()
     fi
 }
 
+open-one-direct()
+{
+    directport="$1"
+    tf=/tmp/tmpfifo
+    rm -f $tf
+    mkfifo $tf
+    exec 22> >(cat >$tf)
+    exec 44< $tf
+    lport=5996
+    [ "$localport" != "" ] && lport="$localport"
+    (echo "nc $localhost_ref $directport" ; nc -l "$lport") <&44 | eval "$eval_for_shell"  >&22 &
+    if [ "$localport" == "" ]; then
+	sleep 1  # sleep long enough for nc to open the listening port
+	vncviewer :96 &
+    fi
+}
+
 search-for-vnc-ports()
 {
     r1="$(echo 'ps aux | grep qemu' | eval "$eval_for_shell")"
@@ -137,7 +160,7 @@ search-for-vnc-ports()
     echo "$vncs"
     
     count="$(echo "$vncs" | wc -l)"
-    if [ "$count" -ne 1 ] && [ "$localport" == ""] &&  ! $doall ; then
+    if [ "$count" -ne 1 ] && [ "$localport" == "" ] &&  ! $doall ; then
 	echo 'More than one match.  Use -a option (and no --lp option) to open all.'
 	exit 255
     fi
@@ -153,5 +176,9 @@ open-port-list()
 }
 
 parse-parameters "$@"
-search-for-vnc-ports "$@"
-open-port-list "$@"
+if [[ "$remoteport" == "" ]]; then
+    search-for-vnc-ports "$@"
+    open-port-list "$@"
+else
+    open-one-direct "$remoteport"
+fi
