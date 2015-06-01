@@ -124,19 +124,21 @@ parse-parameters()
 
 open-one-vnc()
 {
-    vncport="$1"
-    tf=/tmp/tmpfifo
-    rm -f $tf
-    mkfifo $tf
-    exec 22> >(cat >$tf)
-    exec 44< $tf
-    lport=5996
-    [ "$localport" != "" ] && lport="$localport"
-    (echo "nc $localhost_ref $(( $vncport + 5900 ))" ; nc -l "$lport") <&44 | eval "$eval_for_shell"  >&22 &
-    if [ "$localport" == "" ]; then
-	sleep 1  # sleep long enough for nc to open the listening port
-	vncviewer :96 &
-    fi
+    ( # subshell is necessary to generate new 22 and 44 file descriptors
+	vncport="$1"
+	tf=/tmp/tmpfifo
+	rm -f $tf
+	mkfifo $tf
+	exec 22> >(cat >$tf)
+	exec 44< $tf
+	lport=5996
+	[ "$localport" != "" ] && lport="$localport"
+	(echo "nc $localhost_ref $(( $vncport + 5900 ))" ; nc -l "$lport") <&44 | eval "$eval_for_shell"  >&22 &
+	if [ "$localport" == "" ]; then
+	    sleep 1  # sleep long enough for nc to open the listening port
+	    vncviewer :96 &
+	fi
+    )
 }
 
 open-one-direct()
