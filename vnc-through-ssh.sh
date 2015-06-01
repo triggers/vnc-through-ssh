@@ -153,23 +153,6 @@ open-one-vnc()
     )
 }
 
-open-one-direct()
-{
-    directport="$1"
-    tf=/tmp/tmpfifo
-    rm -f $tf
-    mkfifo $tf
-    exec 22> >(cat >$tf)
-    exec 44< $tf
-    lport=5996
-    [ "$localport" != "" ] && lport="$localport"
-    (echo "nc $localhost_ref $directport" ; nc -l "$lport") <&44 | eval "$eval_for_shell"  >&22 &
-    if [ "$localport" == "" ]; then
-	sleep 1  # sleep long enough for nc to open the listening port
-	vncviewer :96 &
-    fi
-}
-
 search-for-vnc-ports()
 {
     r1="$(echo 'ps aux | grep qemu' | eval "$eval_for_shell")"
@@ -215,5 +198,5 @@ if [[ "$remoteport" == "" ]]; then
     search-for-vnc-ports "$@"
     open-port-list "$@"
 else
-    open-one-direct "$remoteport"
+    open-one-vnc "$remoteport"
 fi
