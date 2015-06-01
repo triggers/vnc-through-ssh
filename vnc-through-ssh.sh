@@ -145,7 +145,7 @@ open-one-vnc()
 	lport=$(( 5900 + 100 + rand )) 
 	[ "$localport" != "" ] && lport="$localport"
 
-	(echo "nc $localhost_ref $(( $vncport + 5900 ))" ; nc -l "$lport") <&44 | eval "$eval_for_shell"  >&22 &
+	(echo "nc $localhost_ref $vncport" ; nc -l "$lport") <&44 | eval "$eval_for_shell"  >&22 &
 	if [ "$localport" == "" ]; then
 	    sleep 1  # sleep long enough for nc to open the listening port
 	    vncviewer ":$lport" &
@@ -206,7 +206,7 @@ open-port-list()
     while read ln; do
 	p1="${ln#*:}"
 	p2="${p1% *}"
-	open-one-vnc "$p2"
+	open-one-vnc $(( "$p2" + 5900 ))
     done <<<"$vncs"
 }
 
