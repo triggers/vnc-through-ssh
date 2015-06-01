@@ -14,6 +14,8 @@
 localhost_ref=127.0.0.1
 # localhost_ref=localhost
 
+exec 9>>/tmp/for-vnc-through-ssh-cleanup
+
 usage()
 {
     cat <<'EOF'
@@ -49,6 +51,10 @@ These extra options are possible:
                       a separate vncviewer to each of them.
   --remote-port 5911  Skip step 1 and just connect vncviewer to the remote port given
 
+Also, these options are for debugging and execute immediately without starting connections:
+  --check             Show processes started by this script
+  --cleanup           Kill processes started by this script
+
 -----------------------
 
 Documentation above is just rough notes.  Please ask me directly
@@ -68,6 +74,21 @@ parse-parameters()
 	case "$1" in
 	    --help)
 		usage
+	    ;;
+	    --check)
+		exec 9>&-
+		lsof /tmp/for-vnc-through-ssh-cleanup
+		exit
+	    ;;
+	    --cleanup)
+		exec 9>&-
+		lsof /tmp/for-vnc-through-ssh-cleanup | (
+		    read headerline
+		    while read a b c ; do
+			printf "killing%6d %s\n" $b $a
+			kill $b
+		    done )
+		exit
 	    ;;
 	    --lp | --local*port)
 		localport="$2"
