@@ -170,6 +170,7 @@ search-for-vnc-ports()
     
     if [ "$r2" == "" ]; then
 	echo "$(echo "$vncs" | wc -l) QEMUs, but no matches"
+	exit 255
     fi
     
     vncs="$(echo "$r2" | grep -o -e 'vnc....[^ ]*')"
