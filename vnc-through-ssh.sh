@@ -147,7 +147,7 @@ open-one-vnc()
 
 	(echo "nc $localhost_ref $vncport" ; nc -l "$lport") <&44 | eval "$eval_for_shell"  >&22 &
 	if [ "$localport" == "" ]; then
-	    sleep 1  # sleep long enough for nc to open the listening port
+	    sleep 0.2  # sleep long enough for nc to open the listening port
 	    vncviewer ":$lport" &
 	fi
     )
