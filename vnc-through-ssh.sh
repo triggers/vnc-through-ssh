@@ -126,17 +126,29 @@ open-one-vnc()
 {
     ( # subshell is necessary to generate new 22 and 44 file descriptors
 	vncport="$1"
+
 	tf=/tmp/tmpfifo
 	rm -f $tf
 	mkfifo $tf
 	exec 22> >(cat >$tf)
 	exec 44< $tf
-	lport=5996
+
+	# Randomize the temporary port because MacOS's nc will queue
+	# multiple server requests to the same port, instead of
+	# failing as on Linux.  This can make the behavior very
+	# confusing when vncviewer launching fails for some reason.
+	# It also makes it difficult to test properly for a free port.
+	# Still a small chance an inuse port will be chosen.  Skipping
+	# the common vnc port choices (5900-5999) to reduce this
+	# chance.
+	rand=$(( $RANDOM  % 2000 ))
+	lport=$(( 5900 + 100 + rand )) 
 	[ "$localport" != "" ] && lport="$localport"
+
 	(echo "nc $localhost_ref $(( $vncport + 5900 ))" ; nc -l "$lport") <&44 | eval "$eval_for_shell"  >&22 &
 	if [ "$localport" == "" ]; then
 	    sleep 1  # sleep long enough for nc to open the listening port
-	    vncviewer :96 &
+	    vncviewer ":$lport" &
 	fi
     )
 }
