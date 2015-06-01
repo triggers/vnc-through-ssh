@@ -110,7 +110,7 @@ parse-parameters()
 		    read token1 moretokens <<<"$eval_for_shell"
 		    # If only one token, assume it is an ssh target
 		    # possibly setup by ssh config.
-		    [ "$moretokens" == "" ] && eval_for_shell="ssh $eval_for_shell"
+		    [ "$moretokens" == "" ] && eval_for_shell="ssh -T $eval_for_shell"
 		elif [ "$regex" == "" ]; then
 		    regex="$1"
 		else
