@@ -176,7 +176,30 @@ search-for-vnc-ports()
     vncs="$(echo "$r2" | grep -o -e 'vnc....[^ ]*')"
     
     echo "Matches:"
-    echo "$vncs"
+    # Filter output to only show a few key qemu parameters:
+    while read ln; do
+	for token in $ln; do
+	    echo "$token"
+	done | (
+	    read theuser
+	    read thepid
+	    printf "%-10s %8s " "$theuser" "$thepid"
+	    
+	    while read token2; do
+		case "$token2" in
+		    -vnc|-name)
+			read info
+			echo -n "$token2 $info  "
+			;;
+		    -drive)
+			read driveinfo
+			echo -n "$token2 ${driveinfo%%,*}  "
+			;;
+		esac
+	    done
+	)
+	echo
+    done <<<"$r2"
     
     count="$(echo "$vncs" | wc -l)"
     if [ "$count" -ne 1 ] && [ "$localport" == "" ] &&  ! $doall ; then
