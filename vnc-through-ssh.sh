@@ -155,7 +155,7 @@ open-one-vnc()
 
 search-for-vnc-ports()
 {
-    r1="$(echo 'ps aux | grep qemu' | eval "$eval_for_shell")"
+    r1="$(echo 'ps aux | grep qem[u]' | eval "$eval_for_shell")"
 
     if [ "$regex" != "" ]; then
 	r2="$(echo "$r1" | grep "$regex")"
