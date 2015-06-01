@@ -189,7 +189,7 @@ open-port-list()
     while read ln; do
 	p1="${ln#*:}"
 	p2="${p1% *}"
-	open-one-vnc $(( "$p2" + 5900 ))
+	open-one-vnc $(( p2 + 5900 ))
     done <<<"$vncs"
 }
 
