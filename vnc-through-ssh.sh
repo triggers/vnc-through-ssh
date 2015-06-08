@@ -70,6 +70,7 @@ parse-parameters()
     remoteport=""
     doall=false
     justlist=false
+    portgoal=vnc  # or monitor
     while [ "$#" -gt 0 ]; do
 	case "$1" in
 	    --help)
@@ -103,6 +104,9 @@ parse-parameters()
 	    ;;
 	    -l | --ls | --jl | --just-list)
 		justlist=true
+	    ;;
+	    -m | --monitor)
+		portgoal=monitor
 	    ;;
 	    *)
 		if [ "$eval_for_shell" == "" ]; then
@@ -138,9 +142,9 @@ open-one-vnc()
 	# failing as on Linux.  This can make the behavior very
 	# confusing when vncviewer launching fails for some reason.
 	# It also makes it difficult to test properly for a free port.
-	# Still a small chance an inuse port will be chosen.  Skipping
-	# the common vnc port choices (5900-5999) to reduce this
-	# chance.
+	# This random solution still leaves a small chance an inuse
+	# port will be chosen.  The code skips the common vnc port
+	# choices (5900-5999) to reduce this chance.
 	rand=$(( $RANDOM  % 2000 ))
 	lport=$(( 5900 + 100 + rand )) 
 	[ "$localport" != "" ] && lport="$localport"
@@ -217,10 +221,82 @@ open-port-list()
     done <<<"$vncs"
 }
 
+search-for-monitor-ports()
+{
+    r1="$(echo 'ps aux | grep qem[u]' | eval "$eval_for_shell")"
+
+    if [ "$regex" != "" ]; then
+	r2="$(echo "$r1" | grep "$regex")"
+    else
+	r2="$r1"
+    fi
+
+    if $justlist; then
+	echo "$r2"
+	exit 0
+    fi
+    
+    if [ "$r2" == "" ]; then
+	echo "$(echo "$vncs" | wc -l) QEMUs, but no matches"
+	exit 255
+    fi
+    
+    monitors="$(echo "$r2" | grep -o -e '-monitor....[^ ]*')"
+
+    echo "$monitors"
+    exit 111
+    
+    echo "Matches:"
+    # Filter output to only show a few key qemu parameters:
+    while read ln; do
+	for token in $ln; do
+	    echo "$token"
+	done | (
+	    read theuser
+	    read thepid
+	    printf "%-10s %8s " "$theuser" "$thepid"
+	    
+	    while read token2; do
+		case "$token2" in
+		    -vnc|-name)
+			read info
+			echo -n "$token2 $info  "
+			;;
+		    -drive)
+			read driveinfo
+			echo -n "$token2 ${driveinfo%%,*}  "
+			;;
+		esac
+	    done
+	)
+	echo
+    done <<<"$r2"
+    
+    count="$(echo "$vncs" | wc -l)"
+    if [ "$count" -ne 1 ] && [ "$localport" == "" ] &&  ! $doall ; then
+	echo 'More than one match.  Use -a option (and no --lp option) to open all.'
+	exit 255
+    fi
+}
+
 parse-parameters "$@"
-if [[ "$remoteport" == "" ]]; then
-    search-for-vnc-ports "$@"
-    open-port-list "$@"
+# There seem to be so many subtle differences between connecting
+# to vnc and connecting to the monitor, that code reuse will
+# probably be difficult.  Therefore the first draft of this
+# will be done by copy/paste/edit.
+if [ "$portgoal" == "vnc" ]; then
+    if [[ "$remoteport" == "" ]]; then
+	search-for-vnc-ports "$@"
+	open-port-list "$@"
+    else
+	open-one-vnc "$remoteport"
+    fi
 else
-    open-one-vnc "$remoteport"
+    if [[ "$remoteport" == "" ]]; then
+	search-for-monitor-ports "$@"
+#	open-port-list-for-monitor "$@"
+    else
+	:
+#	open-one-monitor "$remoteport"
+    fi
 fi
