@@ -281,6 +281,24 @@ search-for-monitor-ports()
     fi
 }
 
+open-port-list-for-monitor()
+{
+    echo "$count"
+    echo "$monitors"
+
+    while read ln; do
+	p1="${ln##*:}"
+	p2="${p1%% *}"
+	p3="${p2%%,*}"
+	open-one-monitor "$p3"
+    done <<<"$monitors"
+}
+
+open-one-monitor()
+{
+    echo "TODO: $1"
+}
+
 parse-parameters "$@"
 # There seem to be so many subtle differences between connecting
 # to vnc and connecting to the monitor, that code reuse will
@@ -295,10 +313,9 @@ if [ "$portgoal" == "vnc" ]; then
     fi
 else
     if [[ "$remoteport" == "" ]]; then
-	search-for-monitor-ports "$@"
-#	open-port-list-for-monitor "$@"
+	search-for-monitor-ports
+	open-port-list-for-monitor
     else
-	:
-#	open-one-monitor "$remoteport"
+	open-one-monitor "$remoteport"
     fi
 fi
