@@ -70,7 +70,7 @@ parse-parameters()
     remoteport=""
     doall=false
     justlist=false
-    portgoal=vnc  # or monitor
+    portgoal=vnc  # either vnc or monitor
     while [ "$#" -gt 0 ]; do
 	case "$1" in
 	    --help)
@@ -243,9 +243,6 @@ search-for-monitor-ports()
     
     monitors="$(echo "$r2" | grep -o -e '-monitor....[^ ]*')"
 
-    echo "$monitors"
-    exit 111
-    
     echo "Matches:"
     # Filter output to only show a few key qemu parameters:
     while read ln; do
@@ -258,7 +255,7 @@ search-for-monitor-ports()
 	    
 	    while read token2; do
 		case "$token2" in
-		    -vnc|-name)
+		    -vnc|-name|-monitor)
 			read info
 			echo -n "$token2 $info  "
 			;;
@@ -271,8 +268,13 @@ search-for-monitor-ports()
 	)
 	echo
     done <<<"$r2"
-    
-    count="$(echo "$vncs" | wc -l)"
+
+    if $doall; then
+	echo "-do-all option not supported for connecting to KVM monitors yet"
+	exit 255
+    fi
+
+    count="$(echo "$monitors" | wc -l)"
     if [ "$count" -ne 1 ] && [ "$localport" == "" ] &&  ! $doall ; then
 	echo 'More than one match.  Use -a option (and no --lp option) to open all.'
 	exit 255
