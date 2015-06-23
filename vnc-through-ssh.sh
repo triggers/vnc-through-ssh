@@ -269,11 +269,6 @@ search-for-monitor-ports()
 	echo
     done <<<"$r2"
 
-    if $doall; then
-	echo "-do-all option not supported for connecting to KVM monitors yet"
-	exit 255
-    fi
-
     count="$(echo "$monitors" | wc -l)"
     if [ "$count" -ne 1 ] && [ "$localport" == "" ] &&  ! $doall ; then
 	echo 'More than one match.  Use -a option (and no --lp option) to open all.'
@@ -283,14 +278,20 @@ search-for-monitor-ports()
 
 open-port-list-for-monitor()
 {
-    echo "$count"
-    echo "$monitors"
+    if [ "$count" -gt 1 ]; then
+	echo "Reading in stdin..."
+	buffer="$(cat)"
+    fi
 
     while read ln <&9 ; do
 	p1="${ln##*:}"
 	p2="${p1%% *}"
 	p3="${p2%%,*}"
-	open-one-monitor "$p3"
+	if [ "$count" -gt 1 ]; then
+	    echo "$buffer" | open-one-monitor "$p3"
+	else
+	    open-one-monitor "$p3"
+	fi
     done 9<<<"$monitors"
 }
 
