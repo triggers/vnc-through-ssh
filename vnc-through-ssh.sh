@@ -270,8 +270,8 @@ search-for-monitor-ports()
     done <<<"$r2"
 
     count="$(echo "$monitors" | wc -l)"
-    if [ "$count" -ne 1 ] && [ "$localport" == "" ] &&  ! $doall ; then
-	echo 'More than one match.  Use -a option (and no --lp option) to open all.'
+    if [ "$count" -ne 1 ] && ! $doall ; then
+	echo 'More than one match.  Use -a option to open all.'
 	exit 255
     fi
 }
@@ -314,6 +314,10 @@ if [ "$portgoal" == "vnc" ]; then
 	open-one-vnc "$remoteport"
     fi
 else
+    if [ "$localport" != "" ]; then
+	echo "--localport option not supported for --monitor option"
+	exit 255
+    fi
     if [[ "$remoteport" == "" ]]; then
 	search-for-monitor-ports
 	open-port-list-for-monitor
