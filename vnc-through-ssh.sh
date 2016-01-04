@@ -288,6 +288,95 @@ open-one-monitor()
     (echo "nc $localhost_ref $monitorport" ; cat) | eval "$eval_for_shell"
 }
 
+gather-ssh-info() # executed remotely
+{
+    while read sshpid; do
+	if [ -d /proc/"$sshpid"/cwd/runinfo ]; then
+	    # this vm was started by kvmsteps, so gather info
+	    # from the special files kvmsteps creates
+	    if [ -f /proc/"$sshpid"/cwd/sshkey ]; then
+		echo SSHKEY="'$(< /proc/"$sshpid"/cwd/sshkey)'"
+	    fi
+	    echo SSHPORT="'$(< /proc/"$sshpid"/cwd/runinfo/port.ssh)'"
+	    echo finished-for-one-ssh
+	else
+	    echo non-kvmsteps case(s) not implemented yet.
+	    # TODO: guess port info from kvm command line
+	fi
+    done
+}
+
+search-for-ssh-ports()
+{
+    candidate-kvm-processes
+    condense-ps-output <<<"$kvm_procs"
+    sshpids="$(echo "$kvm_procs" | while read a pid therest; do echo "$pid"; done)"
+    
+    count="$(echo "$sshpids" | wc -l)"
+    if [ "$count" -ne 1 ] && ! $doall ; then
+	echo 'More than one match.  Use -a option to open all.'
+	exit 255
+    fi
+}
+
+wrapssh()
+{
+    (echo "exec nc 127.0.0.1 $SSHPORT" ; cat) | eval "$eval_for_shell"
+}
+
+finished-for-one-ssh()
+{
+    export -f wrapssh
+    export SSHPORT
+    export eval_for_shell
+
+    # build a custom sshconfig and identity file for the ssh login
+    tmpdir=/tmp/sshinfo-$(whoami)-$$
+    rm -fr "$tmpdir" ## TODO: don't let these accumulate
+    mkdir "$tmpdir" || exit
+
+    echo "$SSHKEY" >"$tmpdir/sshkey"
+    chmod 600 "$tmpdir/sshkey"
+
+    cat >"$tmpdir/sshconfig" <<EOF
+HOST kvmstepsvm
+  StrictHostKeyChecking no
+  TCPKeepAlive yes
+  UserKnownHostsFile /dev/null
+  IdentityFile $tmpdir/sshkey
+  Hostname 127.0.0.1
+  User centos
+  ProxyCommand bash -c wrapssh
+EOF
+    chmod 600 "$tmpdir/sshconfig"
+    if [ "$count" -gt 1 ]; then
+	echo "$buffer" | ssh kvmstepsvm -F "$tmpdir/sshconfig" -i "$tmpdir/sshkey"
+    else
+	ssh kvmstepsvm -F "$tmpdir/sshconfig" -i "$tmpdir/sshkey"
+    fi
+    SSHKEY=""
+    SSHPORT=""
+}
+
+open-ssh-pids-for-ssh()
+{
+
+    sshinfo="$(
+       ( declare -f gather-ssh-info ; echo gather-ssh-info ; echo "$sshpids" ) | \
+           eval "$eval_for_shell"
+    )"
+
+    if [ "$count" -gt 1 ]; then
+	echo "Reading in stdin..."
+	buffer="$(cat)"
+    fi
+
+    # TODO: next line is insecure
+    SSHKEY=""
+    SSHPORT=""
+    eval "$sshinfo"
+}
+
 parse-parameters "$@"
 # There seem to be so many subtle differences between connecting
 # to vnc and connecting to the monitor, that code reuse will
@@ -315,6 +404,15 @@ case "$portgoal" in
 	fi
 	;;
     ssh)
-	echo TODO
+	if [ "$localport" != "" ]; then
+	    echo "--localport option not supported for --monitor option"
+	    exit 255
+	fi
+	if [[ "$remoteport" == "" ]]; then
+	    search-for-ssh-ports
+	    open-ssh-pids-for-ssh
+	else
+	    open-one-ssh "$remoteport"
+	fi
 	;;
 esac
