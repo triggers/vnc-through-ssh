@@ -166,7 +166,9 @@ open-one-vnc()
 
 candidate-kvm-processes() # sets kvm_procs, can exit
 {
-    r1="$(echo 'ps aux | grep qem[u]' | eval "$eval_for_shell")"
+    # the -v "/bin/bash" part is a heuristic to not consider bash
+    # shells that possibly remained after launching KVM
+    r1="$(echo 'ps aux | grep qem[u] | grep -v "/bin/bash"' | eval "$eval_for_shell")"
     if [ "$regex" != "" ]; then
 	kvm_procs="$(echo "$r1" | grep "$regex")"
     else
