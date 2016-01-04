@@ -233,8 +233,11 @@ search-for-vnc-ports()
     fi
 }
 
-open-port-list()
+open-port-list-for-vnc()
 {
+    # $vncs will be something like:
+    # vnc :0 -vga
+    # vnc 127.0.0.1:11000
     while read ln; do
 	p1="${ln#*:}"
 	p2="${p1% *}"
@@ -259,6 +262,9 @@ search-for-monitor-ports()
 
 open-port-list-for-monitor()
 {
+    # $monitors will be something like:
+    # -monitor telnet::10097,server,nowait
+    # -monitor telnet:127.0.0.1:11030,server,nowait
     if [ "$count" -gt 1 ]; then
 	echo "Reading in stdin..."
 	buffer="$(cat)"
@@ -291,7 +297,7 @@ case "$portgoal" in
     vnc)
 	if [[ "$remoteport" == "" ]]; then
 	    search-for-vnc-ports "$@"
-	    open-port-list "$@"
+	    open-port-list-for-vnc "$@"
 	else
 	    open-one-vnc "$remoteport"
 	fi
