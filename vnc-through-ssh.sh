@@ -296,11 +296,12 @@ gather-ssh-info() # executed remotely
 	    # from the special files kvmsteps creates
 	    if [ -f /proc/"$sshpid"/cwd/sshkey ]; then
 		echo SSHKEY="'$(< /proc/"$sshpid"/cwd/sshkey)'"
+		echo SSHUSER="'$(< /proc/"$sshpid"/cwd/sshuser)'"
 	    fi
 	    echo SSHPORT="'$(< /proc/"$sshpid"/cwd/runinfo/port.ssh)'"
 	    echo finished-for-one-ssh
 	else
-	    echo non-kvmsteps case(s) not implemented yet.
+	    echo "echo 'non-kvmsteps case(s) not implemented yet.'"
 	    # TODO: guess port info from kvm command line
 	fi
     done
@@ -328,6 +329,7 @@ finished-for-one-ssh()
 {
     export -f wrapssh
     export SSHPORT
+    export SSHUSER
     export eval_for_shell
 
     # build a custom sshconfig and identity file for the ssh login
@@ -345,7 +347,7 @@ HOST kvmstepsvm
   UserKnownHostsFile /dev/null
   IdentityFile $tmpdir/sshkey
   Hostname 127.0.0.1
-  User centos
+  User $SSHUSER
   ProxyCommand bash -c wrapssh
 EOF
     chmod 600 "$tmpdir/sshconfig"
@@ -355,6 +357,7 @@ EOF
 	ssh kvmstepsvm -F "$tmpdir/sshconfig" -i "$tmpdir/sshkey"
     fi
     SSHKEY=""
+    SSHUSER=""
     SSHPORT=""
 }
 
@@ -373,6 +376,7 @@ open-ssh-pids-for-ssh()
 
     # TODO: next line is insecure
     SSHKEY=""
+    SSHUSER=""
     SSHPORT=""
     eval "$sshinfo"
 }
