@@ -152,7 +152,11 @@ open-one-vnc()
 	(echo "nc $localhost_ref $vncport" ; nc -l "$lport") <&44 | eval "$eval_for_shell"  >&22 &
 	if [ "$localport" == "" ]; then
 	    sleep 0.2  # sleep long enough for nc to open the listening port
-	    vncviewer ":$lport" &
+	    # vncviewer would get confused on slow connections, so trying
+	    # the -FullColor options as suggested here:
+	    # https://bugs.launchpad.net/ubuntu/+source/vnc4/+bug/910062
+	    # So far seems to work.
+	    vncviewer ":$lport" -FullColor &
 	fi
     )
 }
