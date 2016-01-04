@@ -164,6 +164,35 @@ open-one-vnc()
     )
 }
 
+condense-ps-output()
+{
+    echo "Matches:"
+    # Filter output to only show a few key qemu parameters:
+    while read ln; do
+	for token in $ln; do
+	    echo "$token"
+	done | (
+	    read theuser
+	    read thepid
+	    printf "%-10s %8s " "$theuser" "$thepid"
+	    
+	    while read token2; do
+		case "$token2" in
+		    -vnc|-name|-monitor)
+			read info
+			echo -n "$token2 ${info%%,*}  "
+			;;
+		    -drive)
+			read driveinfo
+			echo -n "$token2 ${driveinfo%%,*}  "
+			;;
+		esac
+	    done
+	)
+	echo
+    done
+}
+
 candidate-kvm-processes() # sets kvm_procs, can exit
 {
     # the -v "/bin/bash" part is a heuristic to not consider bash
@@ -191,32 +220,8 @@ search-for-vnc-ports()
     candidate-kvm-processes
     
     vncs="$(echo "$kvm_procs" | grep -o -e 'vnc....[^ ]*')"
-    
-    echo "Matches:"
-    # Filter output to only show a few key qemu parameters:
-    while read ln; do
-	for token in $ln; do
-	    echo "$token"
-	done | (
-	    read theuser
-	    read thepid
-	    printf "%-10s %8s " "$theuser" "$thepid"
-	    
-	    while read token2; do
-		case "$token2" in
-		    -vnc|-name)
-			read info
-			echo -n "$token2 $info  "
-			;;
-		    -drive)
-			read driveinfo
-			echo -n "$token2 ${driveinfo%%,*}  "
-			;;
-		esac
-	    done
-	)
-	echo
-    done <<<"$kvm_procs"
+
+    condense-ps-output <<<"$kvm_procs"
     
     count="$(echo "$vncs" | wc -l)"
     if [ "$count" -ne 1 ] && [ "$localport" == "" ] &&  ! $doall ; then
@@ -240,31 +245,7 @@ search-for-monitor-ports()
     
     monitors="$(echo "$kvm_procs" | grep -o -e '-monitor....[^ ]*')"
 
-    echo "Matches:"
-    # Filter output to only show a few key qemu parameters:
-    while read ln; do
-	for token in $ln; do
-	    echo "$token"
-	done | (
-	    read theuser
-	    read thepid
-	    printf "%-10s %8s " "$theuser" "$thepid"
-	    
-	    while read token2; do
-		case "$token2" in
-		    -vnc|-name|-monitor)
-			read info
-			echo -n "$token2 $info  "
-			;;
-		    -drive)
-			read driveinfo
-			echo -n "$token2 ${driveinfo%%,*}  "
-			;;
-		esac
-	    done
-	)
-	echo
-    done <<<"$kvm_procs"
+    condense-ps-output <<<"$kvm_procs"
 
     count="$(echo "$monitors" | wc -l)"
     if [ "$count" -ne 1 ] && ! $doall ; then
