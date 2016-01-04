@@ -108,6 +108,9 @@ parse-parameters()
 	    -m | --monitor)
 		portgoal=monitor
 	    ;;
+	    -s | --ssh)
+		portgoal=ssh
+	    ;;
 	    *)
 		if [ "$eval_for_shell" == "" ]; then
 		    eval_for_shell="$1"
@@ -284,22 +287,28 @@ parse-parameters "$@"
 # to vnc and connecting to the monitor, that code reuse will
 # probably be difficult.  Therefore the first draft of this
 # will be done by copy/paste/edit.
-if [ "$portgoal" == "vnc" ]; then
-    if [[ "$remoteport" == "" ]]; then
-	search-for-vnc-ports "$@"
-	open-port-list "$@"
-    else
-	open-one-vnc "$remoteport"
-    fi
-else
-    if [ "$localport" != "" ]; then
-	echo "--localport option not supported for --monitor option"
-	exit 255
-    fi
-    if [[ "$remoteport" == "" ]]; then
-	search-for-monitor-ports
-	open-port-list-for-monitor
-    else
-	open-one-monitor "$remoteport"
-    fi
-fi
+case "$portgoal" in
+    vnc)
+	if [[ "$remoteport" == "" ]]; then
+	    search-for-vnc-ports "$@"
+	    open-port-list "$@"
+	else
+	    open-one-vnc "$remoteport"
+	fi
+	;;
+    monitor)
+	if [ "$localport" != "" ]; then
+	    echo "--localport option not supported for --monitor option"
+	    exit 255
+	fi
+	if [[ "$remoteport" == "" ]]; then
+	    search-for-monitor-ports
+	    open-port-list-for-monitor
+	else
+	    open-one-monitor "$remoteport"
+	fi
+	;;
+    ssh)
+	echo TODO
+	;;
+esac
