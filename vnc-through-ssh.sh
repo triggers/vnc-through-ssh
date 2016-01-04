@@ -164,27 +164,31 @@ open-one-vnc()
     )
 }
 
-search-for-vnc-ports()
+candidate-kvm-processes() # sets kvm_procs, can exit
 {
     r1="$(echo 'ps aux | grep qem[u]' | eval "$eval_for_shell")"
-
     if [ "$regex" != "" ]; then
-	r2="$(echo "$r1" | grep "$regex")"
+	kvm_procs="$(echo "$r1" | grep "$regex")"
     else
-	r2="$r1"
+	kvm_procs="$r1"
     fi
 
     if $justlist; then
-	echo "$r2"
+	echo "$kvm_procs"
 	exit 0
     fi
     
-    if [ "$r2" == "" ]; then
+    if [ "$kvm_procs" == "" ]; then
 	echo "$(echo "$vncs" | wc -l) QEMUs, but no matches"
 	exit 255
     fi
+}
+
+search-for-vnc-ports()
+{
+    candidate-kvm-processes
     
-    vncs="$(echo "$r2" | grep -o -e 'vnc....[^ ]*')"
+    vncs="$(echo "$kvm_procs" | grep -o -e 'vnc....[^ ]*')"
     
     echo "Matches:"
     # Filter output to only show a few key qemu parameters:
@@ -210,7 +214,7 @@ search-for-vnc-ports()
 	    done
 	)
 	echo
-    done <<<"$r2"
+    done <<<"$kvm_procs"
     
     count="$(echo "$vncs" | wc -l)"
     if [ "$count" -ne 1 ] && [ "$localport" == "" ] &&  ! $doall ; then
@@ -230,25 +234,9 @@ open-port-list()
 
 search-for-monitor-ports()
 {
-    r1="$(echo 'ps aux | grep qem[u]' | eval "$eval_for_shell")"
-
-    if [ "$regex" != "" ]; then
-	r2="$(echo "$r1" | grep "$regex")"
-    else
-	r2="$r1"
-    fi
-
-    if $justlist; then
-	echo "$r2"
-	exit 0
-    fi
+    candidate-kvm-processes
     
-    if [ "$r2" == "" ]; then
-	echo "$(echo "$vncs" | wc -l) QEMUs, but no matches"
-	exit 255
-    fi
-    
-    monitors="$(echo "$r2" | grep -o -e '-monitor....[^ ]*')"
+    monitors="$(echo "$kvm_procs" | grep -o -e '-monitor....[^ ]*')"
 
     echo "Matches:"
     # Filter output to only show a few key qemu parameters:
@@ -274,7 +262,7 @@ search-for-monitor-ports()
 	    done
 	)
 	echo
-    done <<<"$r2"
+    done <<<"$kvm_procs"
 
     count="$(echo "$monitors" | wc -l)"
     if [ "$count" -ne 1 ] && ! $doall ; then
