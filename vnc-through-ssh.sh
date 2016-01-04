@@ -149,7 +149,10 @@ open-one-vnc()
 	lport=$(( 5900 + 100 + rand )) 
 	[ "$localport" != "" ] && lport="$localport"
 
-	(echo "nc $localhost_ref $vncport" ; nc -l "$lport") <&44 | eval "$eval_for_shell"  >&22 &
+	# the "exec" part in the next line is necessary so that when
+	# nc exits, vncviewer output will not be sent to the bash
+	# shell that started nc.
+	(echo "exec nc $localhost_ref $vncport" ; nc -l "$lport") <&44 | eval "$eval_for_shell"  >&22 &
 	if [ "$localport" == "" ]; then
 	    sleep 0.2  # sleep long enough for nc to open the listening port
 	    # vncviewer would get confused on slow connections, so trying
