@@ -351,10 +351,13 @@ HOST kvmstepsvm
   ProxyCommand bash -c wrapssh
 EOF
     chmod 600 "$tmpdir/sshconfig"
+
+    # sshcommand can be used like this:
+    # sshcommand='-L 8887:127.0.0.1:8888' ./vnc-through-ssh.sh p24 10978 -s 
     if [ "$count" -gt 1 ]; then
-	echo "$buffer" | ssh kvmstepsvm -F "$tmpdir/sshconfig" -i "$tmpdir/sshkey"
+	echo "$buffer" | ssh kvmstepsvm -F "$tmpdir/sshconfig" -i "$tmpdir/sshkey" $sshcommand
     else
-	ssh kvmstepsvm -F "$tmpdir/sshconfig" -i "$tmpdir/sshkey"
+	ssh kvmstepsvm -F "$tmpdir/sshconfig" -i "$tmpdir/sshkey" $sshcommand
     fi
     SSHKEY=""
     SSHUSER=""
